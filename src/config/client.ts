@@ -5,153 +5,139 @@ import axios, {
   AxiosError,
 } from 'axios';
 import dotenv from 'dotenv';
-import { ClientConfig } from '../interfaces';
+import { ClientConfig, IWorkWhizClient } from '../interfaces';
 
 dotenv.config();
 
-/**
- * Custom API error class with status code and details
- */
 class ApiError extends Error {
-  /**
-   * @param message - Error message
-   * @param status - HTTP status code
-   * @param details - Additional error details
-   */
   constructor(
     message: string,
     public status?: number,
     public details?: any,
+    public timestamp: string = new Date().toISOString(),
   ) {
     super(message);
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 
-/**
- * WorkWhiz API Client for interacting with the WorkWhiz REST API
- */
-export class WorkWhizClient {
+export class WorkWhizClient implements IWorkWhizClient {
   private instance: AxiosInstance;
   private apiKey: string;
 
-  /**
-   * Create a new WorkWhizClient instance
-   * @param config - Client configuration
-   * @param config.apiKey - API key for authentication
-   * @param config.baseURL - Base URL for the API
-   * @param config.timeout - Request timeout in milliseconds
-   */
   constructor(config: ClientConfig) {
     this.apiKey = config.apiKey || process.env.WORK_WHIZ_API_KEY || '';
+    if (!this.apiKey) {
+      console.error(
+        '❌ [Error]: API key is required to initialize WorkWhizClient.',
+      );
+      throw new Error('API key is required to initialize WorkWhizClient.');
+    }
 
+    console.info('🚀 [Info]: Initializing WorkWhizClient...');
     this.instance = axios.create({
       baseURL:
         config.baseURL ||
         process.env.WORK_WHIZ_BASE_URL ||
         'https://api.workwhiz.com',
-      timeout: config.timeout ? Number(config.timeout) : 5000,
+      timeout: config.timeout
+        ? Number(config.timeout)
+        : Number(process.env.WORK_WHIZ_TIMEOUT) || 5000,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
     });
 
-    this.instance.interceptors.request.use((req: any) => {
-      if (!req.headers) {
-        req.headers = {};
-      }
+    this.instance.interceptors.request.use(req => {
+      console.info(
+        `📤 [Request]: Sending ${req.method?.toUpperCase()} request to ${req.url}`,
+      );
+      req.headers = req.headers || {};
       req.headers.Authorization = `Bearer ${this.apiKey}`;
       return req;
     });
 
     this.instance.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        console.info(
+          `✅ [Response]: Received response from ${response.config.url} with status ${response.status}`,
+        );
+        return response;
+      },
       (error: AxiosError) => {
+        const errorMessage = `❌ [Error]: Error in ${error.config?.method?.toUpperCase()} ${error.config?.url}: ${
+          (error.response?.data as any)?.message || 'API request failed'
+        }`;
+        console.error(errorMessage);
         if (error.response) {
-          const errorMessage =
-            (error.response.data as any)?.message || 'API request failed';
           throw new ApiError(
             errorMessage,
             error.response.status,
             error.response.data,
           );
         }
-        throw new ApiError(
-          error.message || 'Network error',
-          error.code ? parseInt(error.code) : undefined,
-        );
+        throw new ApiError(error.message || 'Network error', undefined);
       },
     );
   }
 
-  /**
-   * Send a GET request
-   * @param url - The URL to send the request to
-   * @param config - Optional axios config
-   * @returns Promise with response data
-   */
-  public async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  public get = async <T>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<T> => {
+    console.info(`🔍 [Info]: Performing GET request to ${url}`);
     const response = await this.instance.get<T>(url, config);
+    console.info(`✅ [Success]: GET request to ${url} completed successfully.`);
     return response.data;
-  }
+  };
 
-  /**
-   * Send a POST request
-   * @param url - The URL to send the request to
-   * @param data - The data to send in the request body
-   * @param config - Optional axios config
-   * @returns Promise with response data
-   */
-  public async post<T>(
+  public post = async <T>(
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-  ): Promise<T> {
+  ): Promise<T> => {
+    console.info(`📦 [Info]: Performing POST request to ${url}`);
     const response = await this.instance.post<T>(url, data, config);
+    console.info(
+      `✅ [Success]: POST request to ${url} completed successfully.`,
+    );
     return response.data;
-  }
+  };
 
-  /**
-   * Send a PUT request
-   * @param url - The URL to send the request to
-   * @param data - The data to send in the request body
-   * @param config - Optional axios config
-   * @returns Promise with response data
-   */
-  public async put<T>(
+  public put = async <T>(
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-  ): Promise<T> {
+  ): Promise<T> => {
+    console.info(`✏️ [Info]: Performing PUT request to ${url}`);
     const response = await this.instance.put<T>(url, data, config);
+    console.info(`✅ [Success]: PUT request to ${url} completed successfully.`);
     return response.data;
-  }
+  };
 
-  /**
-   * Send a PATCH request
-   * @param url - The URL to send the request to
-   * @param data - The data to send in the request body
-   * @param config - Optional axios config
-   * @returns Promise with response data
-   */
-  public async patch<T>(
+  public patch = async <T>(
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-  ): Promise<T> {
+  ): Promise<T> => {
+    console.info(`🔧 [Info]: Performing PATCH request to ${url}`);
     const response = await this.instance.patch<T>(url, data, config);
+    console.info(
+      `✅ [Success]: PATCH request to ${url} completed successfully.`,
+    );
     return response.data;
-  }
+  };
 
-  /**
-   * Send a DELETE request
-   * @param url - The URL to send the request to
-   * @param config - Optional axios config
-   * @returns Promise with response data
-   */
-  public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  public delete = async <T>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<T> => {
+    console.info(`🗑️ [Info]: Performing DELETE request to ${url}`);
     const response = await this.instance.delete<T>(url, config);
+    console.info(
+      `✅ [Success]: DELETE request to ${url} completed successfully.`,
+    );
     return response.data;
-  }
+  };
 }

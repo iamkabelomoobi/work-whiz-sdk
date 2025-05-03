@@ -1,1 +1,1 @@
-export { ClientConfig } from './client';
+export { ClientConfig, IWorkWhizClient } from './client';
