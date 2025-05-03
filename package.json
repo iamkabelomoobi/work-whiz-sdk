@@ -1,20 +1,35 @@
 {
   "name": "@work-whiz/sdk",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Official SDK for Work Whiz API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "prepublish": "npm run build",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src/**/*.ts"
   },
   "keywords": [
     "work-whiz",
+    "work-whiz-sdk",
     "api",
-    "sdk"
+    "sdk",
+    "typescript",
+    "javascript",
+    "rest-api",
+    "api-client",
+    "automation",
+    "workflow",
+    "integration",
+    "developer-tools",
+    "npm-package",
+    "http-client",
+    "axios",
+    "work-whiz-api",
+    "work-whiz-integration"
   ],
   "files": [
     "dist"
