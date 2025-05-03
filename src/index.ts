@@ -1,5 +1,6 @@
-import { WorkWhizClient } from './config';
-import { ClientConfig } from './interfaces';
+import 'dotenv/config';
+import { WorkWhizClient } from './config/client';
+import { ClientConfig } from './interfaces/client';
 
 class WorkWhizSDK {
   constructor(config: ClientConfig = {}) {

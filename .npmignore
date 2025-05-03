@@ -1,9 +1,11 @@
 src/
-.env
-.env.example
+rollup.config.js
 .eslintrc.json
 .eslintignore
 .prettierrc
 .prettierignore
 jest.config.js
 tsconfig.json
+.env
+.env.example
+coverage/
