@@ -1,11 +1,11 @@
 import axios, {
-  AxiosInstance,
   AxiosRequestConfig,
+  AxiosInstance,
   AxiosResponse,
   AxiosError,
 } from 'axios';
 import dotenv from 'dotenv';
-import { ClientConfig, IWorkWhizClient } from '../interfaces';
+import { ClientConfig, IWorkWhizClient } from '../interfaces/client';
 
 dotenv.config();
 
@@ -84,7 +84,7 @@ export class WorkWhizClient implements IWorkWhizClient {
 
   public get = async <T>(
     url: string,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig<any>,
   ): Promise<T> => {
     console.info(`🔍 [Info]: Performing GET request to ${url}`);
     const response = await this.instance.get<T>(url, config);
@@ -95,7 +95,7 @@ export class WorkWhizClient implements IWorkWhizClient {
   public post = async <T>(
     url: string,
     data?: any,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig<any>,
   ): Promise<T> => {
     console.info(`📦 [Info]: Performing POST request to ${url}`);
     const response = await this.instance.post<T>(url, data, config);
@@ -108,7 +108,7 @@ export class WorkWhizClient implements IWorkWhizClient {
   public put = async <T>(
     url: string,
     data?: any,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig<any>,
   ): Promise<T> => {
     console.info(`✏️ [Info]: Performing PUT request to ${url}`);
     const response = await this.instance.put<T>(url, data, config);
@@ -119,7 +119,7 @@ export class WorkWhizClient implements IWorkWhizClient {
   public patch = async <T>(
     url: string,
     data?: any,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig<any>,
   ): Promise<T> => {
     console.info(`🔧 [Info]: Performing PATCH request to ${url}`);
     const response = await this.instance.patch<T>(url, data, config);
@@ -131,7 +131,7 @@ export class WorkWhizClient implements IWorkWhizClient {
 
   public delete = async <T>(
     url: string,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig<any>,
   ): Promise<T> => {
     console.info(`🗑️ [Info]: Performing DELETE request to ${url}`);
     const response = await this.instance.delete<T>(url, config);
