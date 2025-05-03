@@ -1,0 +1,9 @@
+src/
+.env
+.env.example
+.eslintrc.json
+.eslintignore
+.prettierrc
+.prettierignore
+jest.config.js
+tsconfig.json
