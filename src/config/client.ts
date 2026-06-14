@@ -4,10 +4,27 @@ import axios, {
   AxiosResponse,
   AxiosError,
 } from 'axios';
-import dotenv from 'dotenv';
+import { AuthResource } from '../modules/auth';
+import {
+  AuthResponse,
+  AuthSessionResponse,
+  MessageResponse,
+  RequestPasswordResetRequest,
+  ResetPasswordRequest,
+  SignInEmailRequest,
+  SignUpEmailRequest,
+} from '../modules/auth/auth.types';
+import { GraphQLResource } from '../graphql';
+import { GraphQLResponse } from '../graphql/graphql.types';
 import { ClientConfig, IWorkWhizClient } from '../interfaces/client';
 
-dotenv.config();
+const getEnv = (key: string): string | undefined => {
+  if (typeof process === 'undefined') {
+    return undefined;
+  }
+
+  return process.env?.[key];
+};
 
 class ApiError extends Error {
   constructor(
@@ -24,10 +41,13 @@ class ApiError extends Error {
 export class WorkWhizClient implements IWorkWhizClient {
   private instance: AxiosInstance;
   private apiKey: string;
+  private sessionCookie?: string;
+  private auth: AuthResource;
+  private graphQL: GraphQLResource;
 
   constructor(config: ClientConfig) {
-    this.apiKey = config.apiKey || process.env.WORK_WHIZ_API_KEY || '';
-    if (!this.apiKey) {
+    this.apiKey = config.apiKey || getEnv('WORK_WHIZ_API_KEY') || '';
+    if (config.requireApiKey && !this.apiKey) {
       console.error(
         '❌ [Error]: API key is required to initialize WorkWhizClient.',
       );
@@ -37,16 +57,15 @@ export class WorkWhizClient implements IWorkWhizClient {
     console.info('🚀 [Info]: Initializing WorkWhizClient...');
     this.instance = axios.create({
       baseURL:
-        config.baseURL ||
-        process.env.WORK_WHIZ_BASE_URL ||
-        'https://api.workwhiz.com',
+        config.baseURL || getEnv('WORK_WHIZ_BASE_URL') || 'https://api.workwhiz.com',
       timeout: config.timeout
         ? Number(config.timeout)
-        : Number(process.env.WORK_WHIZ_TIMEOUT) || 5000,
+        : Number(getEnv('WORK_WHIZ_TIMEOUT')) || 5000,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
+      withCredentials: true,
     });
 
     this.instance.interceptors.request.use(req => {
@@ -54,7 +73,9 @@ export class WorkWhizClient implements IWorkWhizClient {
         `📤 [Request]: Sending ${req.method?.toUpperCase()} request to ${req.url}`,
       );
       req.headers = req.headers || {};
-      req.headers.Authorization = `Bearer ${this.apiKey}`;
+      if (this.apiKey) {
+        req.headers.Authorization = `Bearer ${this.apiKey}`;
+      }
       return req;
     });
 
@@ -80,6 +101,50 @@ export class WorkWhizClient implements IWorkWhizClient {
         throw new ApiError(error.message || 'Network error', undefined);
       },
     );
+
+    this.auth = new AuthResource({
+      http: this.instance,
+      storeSessionCookie: headers => this.storeSessionCookie(headers),
+      clearSessionCookie: () => this.clearSessionCookie(),
+      withSessionCookie: config => this.withSessionCookie(config),
+    });
+    this.graphQL = new GraphQLResource({
+      http: this.instance,
+      withSessionCookie: config => this.withSessionCookie(config),
+    });
+  }
+
+  private storeSessionCookie(headers?: Record<string, any>): void {
+    const setCookie = headers?.['set-cookie'] || headers?.['Set-Cookie'];
+    if (!setCookie) {
+      return;
+    }
+
+    const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+    this.sessionCookie = cookies
+      .map(cookie => String(cookie).split(';')[0])
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  private clearSessionCookie(): void {
+    this.sessionCookie = undefined;
+  }
+
+  private withSessionCookie(
+    config?: AxiosRequestConfig<any>,
+  ): AxiosRequestConfig<any> {
+    if (!this.sessionCookie) {
+      return config || {};
+    }
+
+    return {
+      ...config,
+      headers: {
+        ...config?.headers,
+        Cookie: this.sessionCookie,
+      },
+    };
   }
 
   public get = async <T>(
@@ -139,5 +204,63 @@ export class WorkWhizClient implements IWorkWhizClient {
       `✅ [Success]: DELETE request to ${url} completed successfully.`,
     );
     return response.data;
+  };
+
+  public signUpEmail = async (
+    data: SignUpEmailRequest,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<AuthResponse> => {
+    return this.auth.signUpEmail(data, config);
+  };
+
+  public signInEmail = async (
+    data: SignInEmailRequest,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<AuthResponse> => {
+    return this.auth.signInEmail(data, config);
+  };
+
+  public signOut = async (
+    config?: AxiosRequestConfig<any>,
+  ): Promise<MessageResponse> => {
+    return this.auth.signOut(config);
+  };
+
+  public verifyEmail = async (
+    token: string,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<MessageResponse> => {
+    return this.auth.verifyEmail(token, config);
+  };
+
+  public requestPasswordReset = async (
+    data: RequestPasswordResetRequest,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<MessageResponse> => {
+    return this.auth.requestPasswordReset(data, config);
+  };
+
+  public resetPassword = async (
+    data: ResetPasswordRequest,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<MessageResponse> => {
+    return this.auth.resetPassword(data, config);
+  };
+
+  public getSession = async (
+    config?: AxiosRequestConfig<any>,
+  ): Promise<AuthSessionResponse> => {
+    return this.auth.getSession(config);
+  };
+
+  public graphql = async <
+    TData = unknown,
+    TVariables extends Record<string, unknown> = Record<string, unknown>,
+  >(
+    query: string,
+    variables?: TVariables,
+    config?: AxiosRequestConfig<any>,
+  ): Promise<GraphQLResponse<TData>> => {
+    return this.graphQL.graphql(query, variables, config);
   };
 }
