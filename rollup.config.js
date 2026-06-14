@@ -3,6 +3,10 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
 
+const externalDependencies = ['axios', 'tslib'];
+const isExternalDependency = id =>
+  externalDependencies.some(pkg => id === pkg || id.startsWith(`${pkg}/`));
+
 export default {
   input: 'src/index.ts',
   output: [
@@ -10,7 +14,7 @@ export default {
       file: 'dist/index.cjs.js',
       format: 'cjs',
       sourcemap: true,
-      exports: 'auto',
+      exports: 'named',
     },
     {
       file: 'dist/index.esm.js',
@@ -22,9 +26,9 @@ export default {
       format: 'umd',
       name: 'WorkWhizSDK',
       sourcemap: true,
+      exports: 'named',
       globals: {
         axios: 'axios',
-        dotenv: 'dotenv',
         tslib: 'tslib',
       },
     },
@@ -37,5 +41,5 @@ export default {
     }),
     terser(),
   ],
-  external: ['axios', 'dotenv', 'tslib'],
+  external: isExternalDependency,
 };
